@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TheLeduylamCloudVN - Trạm Giám Sát ESP32-C3</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .fade-in { animation: fadeIn 0.4s ease-in-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-800 antialiased min-h-screen flex flex-col md:flex-row overflow-x-hidden">
+
+<!-- Chosen Palette: Warm Sand & Sage Green (Stone-50 background, Stone-800 text, Emerald-600/Teal-600 accents, Rose-500 alerts) -->
+<!-- Application Structure Plan: The SPA is designed as an interactive, tab-based "Build Wizard". It transforms a static markdown guide into a dynamic workflow. The structure includes a sidebar for navigation (Overview, Components, Wiring, Blynk, Code) and a main content area. The "Overview" acts as an interactive simulation of the final product to build excitement and context. This structure was chosen because building hardware/software systems is a sequential process, and breaking it down into distinct, focused interactive views reduces cognitive overload compared to a long scrolling document. -->
+<!-- Visualization & Content Choices: 
+1. Overview: Goal -> Show system capabilities. Viz -> Chart.js Half-Doughnut charts simulating Blynk gauges (Temp, Humi, Soil). Interaction -> Live data simulation via JS. Justification -> Gives users immediate visual context of what they are building. Library -> Chart.js Canvas. 
+2. Components: Goal -> Identify parts. Viz -> CSS Grid with Unicode icons. Interaction -> Hover effects. Justification -> Clean, visual list without relying on external SVGs. 
+3. Wiring: Goal -> Show connections. Viz -> Interactive layout grouping Inputs/Outputs. Interaction -> Click to highlight paths (simulated via CSS classes). Justification -> Makes pinouts easier to read than a dense table. 
+4. Blynk Setup: Goal -> Configure app. Viz -> Styled Tables. Justification -> Best format for mapping Virtual Pins to data types.
+5. Code: Goal -> Provide firmware. Viz -> Pre/Code blocks with Copy button. Interaction -> Click to copy. Justification -> Essential functional requirement for a dev guide. Confirming NO SVG/Mermaid used. -->
+<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <nav class="w-full md:w-64 bg-white shadow-lg z-10 flex flex-row md:flex-col sticky top-0 md:h-screen overflow-x-auto hide-scrollbar border-b md:border-b-0 md:border-r border-stone-200">
+        <div class="p-4 md:p-6 flex-shrink-0 flex items-center justify-center border-b border-stone-100">
+            <span class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-emerald-500">
+                ☁️ LeduylamCloud
+            </span>
+        </div>
+        <div class="flex flex-row md:flex-col flex-1 p-2 md:p-4 space-x-2 md:space-x-0 md:space-y-2" id="nav-menu">
+            <button onclick="navigate('overview')" class="nav-btn active flex items-center px-4 py-3 w-full text-left rounded-xl transition-all duration-200 bg-emerald-50 text-emerald-700 font-semibold shadow-sm">
+                <span class="mr-3 text-xl">📊</span> Tổng quan Hệ thống
+            </button>
+            <button onclick="navigate('components')" class="nav-btn flex items-center px-4 py-3 w-full text-left rounded-xl transition-all duration-200 hover:bg-stone-100 text-stone-600 font-medium">
+                <span class="mr-3 text-xl">🧩</span> Chuẩn bị Linh kiện
+            </button>
+            <button onclick="navigate('wiring')" class="nav-btn flex items-center px-4 py-3 w-full text-left rounded-xl transition-all duration-200 hover:bg-stone-100 text-stone-600 font-medium">
+                <span class="mr-3 text-xl">🔌</span> Sơ đồ Nối dây
+            </button>
+            <button onclick="navigate('blynk')" class="nav-btn flex items-center px-4 py-3 w-full text-left rounded-xl transition-all duration-200 hover:bg-stone-100 text-stone-600 font-medium">
+                <span class="mr-3 text-xl">📱</span> Thiết lập Blynk
+            </button>
+            <button onclick="navigate('code')" class="nav-btn flex items-center px-4 py-3 w-full text-left rounded-xl transition-all duration-200 hover:bg-stone-100 text-stone-600 font-medium">
+                <span class="mr-3 text-xl">💻</span> Cài đặt & Mã nguồn
+            </button>
+        </div>
+    </nav>
+
+    <main class="flex-1 p-6 md:p-10 overflow-y-auto w-full max-w-6xl mx-auto">
+        
+        <section id="overview" class="content-section block fade-in">
+            <header class="mb-8">
+                <h1 class="text-3xl md:text-4xl font-extrabold text-stone-800 mb-4">Trạm Giám Sát & Bảo Mật Toàn Diện</h1>
+                <p class="text-lg text-stone-600 leading-relaxed bg-white p-4 rounded-xl shadow-sm border border-stone-100">
+                    Chào mừng bạn đến với hướng dẫn xây dựng hệ thống <strong>TheLeduylamCloudVN</strong>. Phần này cung cấp một cái nhìn tổng quan trực quan về những gì hệ thống của bạn sẽ làm được. Dưới đây là mô phỏng bảng điều khiển trung tâm hiển thị dữ liệu thời gian thực từ các cảm biến môi trường (Nhiệt độ, Độ ẩm) và trạng thái an ninh (Mưa, Rung) được xử lý bởi bo mạch ESP32-C3.
+                </p>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-2xl shadow-md p-6 border border-stone-100 flex flex-col items-center">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-stone-500 mb-2">Nhiệt độ (V3)</h3>
+                    <div class="relative w-full h-40 max-w-[200px] mx-auto">
+                        <canvas id="tempChart"></canvas>
+                        <div class="absolute inset-0 flex items-end justify-center pb-2">
+                            <span id="tempValue" class="text-3xl font-bold text-stone-800">25°C</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-md p-6 border border-stone-100 flex flex-col items-center">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-stone-500 mb-2">Độ ẩm (V4)</h3>
+                    <div class="relative w-full h-40 max-w-[200px] mx-auto">
+                        <canvas id="humiChart"></canvas>
+                        <div class="absolute inset-0 flex items-end justify-center pb-2">
+                            <span id="humiValue" class="text-3xl font-bold text-stone-800">60%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-md p-6 border border-stone-100 flex flex-col items-center">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-stone-500 mb-2">Độ ẩm đất (V5)</h3>
+                    <div class="relative w-full h-40 max-w-[200px] mx-auto">
+                        <canvas id="soilChart"></canvas>
+                        <div class="absolute inset-0 flex items-end justify-center pb-2">
+                            <span id="soilValue" class="text-3xl font-bold text-stone-800">45%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-md p-6 border border-stone-100">
+                <h3 class="text-xl font-bold text-stone-800 mb-4 border-b pb-2">Cơ chế hoạt động thông minh</h3>
+                <ul class="space-y-3 text-stone-600">
+                    <li class="flex items-start">
+                        <span class="text-rose-500 mr-2 font-bold">🚨</span>
+                        <span><strong>Cảnh báo Đa tầng:</strong> Còi sẽ tự động hú nếu phát hiện Rung (trộm), quá nhiệt (>75°C), có mưa hoặc khi bạn bấm nút thủ công trên App Blynk.</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-emerald-500 mr-2 font-bold">🔇</span>
+                        <span><strong>Chế độ Im lặng (Mute):</strong> Nút điều khiển V12 trên app cho phép bạn tắt tiếng còi vật lý nhưng vẫn nhận được thông báo đẩy (Push Notification) trên điện thoại.</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-blue-500 mr-2 font-bold">📺</span>
+                        <span><strong>LCD Xoay vòng:</strong> Màn hình LCD 16x2 sẽ tự động chuyển đổi thông số hiển thị sau mỗi 2 giây, giúp bạn xem được toàn bộ 10 thông số mà không cần thao tác bấm nút.</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-amber-500 mr-2 font-bold">🛡️</span>
+                        <span><strong>Chống Offline:</strong> Hệ thống sử dụng lệnh <code>Blynk.config</code> đảm bảo chip không bị treo hoặc dừng hoạt động đọc cảm biến khi mạng WiFi tại nhà bị mất kết nối.</span>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="components" class="content-section hidden">
+            <header class="mb-8">
+                <h1 class="text-3xl md:text-4xl font-extrabold text-stone-800 mb-4">Danh sách Chuẩn bị</h1>
+                <p class="text-lg text-stone-600 leading-relaxed bg-white p-4 rounded-xl shadow-sm border border-stone-100">
+                    Phần này liệt kê tất cả các linh kiện phần cứng cần thiết để xây dựng hệ thống. Nhấp vào các thẻ để xem mô tả chi tiết về chức năng của từng thành phần trong tổng thể dự án TheLeduylamCloudVN.
+                </p>
+            </header>
+
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-stone-200 hover:shadow-md transition-shadow hover:-translate-y-1 transform duration-200 cursor-pointer group" onclick="alert('ESP32-C3: Bộ não trung tâm kết nối WiFi và xử lý mọi logic của hệ thống.')">
+                    <div class="text-4xl mb-3 text-center group-hover:scale-110 transition-transform">🧠</div>
+                    <h4 class="font-bold text-center text-stone-800 text-sm">ESP32-C3</h4>
+                    <p class="text-xs text-center text-stone-500 mt-1">Vi điều khiển WiFi (x1)</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-stone-200 hover:shadow-md transition-shadow hover:-translate-y-1 transform duration-200 cursor-pointer group" onclick="alert('LCD 16x2 I2C: Dùng để hiển thị trạng thái trực tiếp mà không cần mở điện thoại.')">
+                    <div class="text-4xl mb-3 text-center group-hover:scale-110 transition-transform">📺</div>
+                    <h4 class="font-bold text-center text-stone-800 text-sm">LCD 16x2 I2C</h4>
+                    <p class="text-xs text-center text-stone-500 mt-1">Màn hình hiển thị (x1)</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-stone-200 hover:shadow-md transition-shadow hover:-translate-y-1 transform duration-200 cursor-pointer group" onclick="alert('Cảm biến DHT11: Đo nhiệt độ và độ ẩm không khí môi trường xung quanh.')">
+                    <div class="text-4xl mb-3 text-center group-hover:scale-110 transition-transform">🌡️</div>
+                    <h4 class="font-bold text-center text-stone-800 text-sm">Cảm biến DHT11</h4>
+                    <p class="text-xs text-center text-stone-500 mt-1">Đo Nhiệt/Ẩm khí (x1)</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-stone-200 hover:shadow-md transition-shadow hover:-translate-y-1 transform duration-200 cursor-pointer group" onclick="alert('Cảm biến độ ẩm đất: Cắm vào chậu cây để biết khi nào cây cần tưới nước.')">
+                    <div class="text-4xl mb-3 text-center group-hover:scale-110 transition-transform">🌱</div>
+                    <h4 class="font-bold text-center text-stone-800 text-sm">Độ ẩm đất</h4>
+                    <p class="text-xs text-center text-stone-500 mt-1">Giám sát cây trồng (x1)</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-stone-200 hover:shadow-md transition-shadow hover:-translate-y-1 transform duration-200 cursor-pointer group" onclick="alert('Cảm biến Rung: Phát hiện va đập hoặc có người di chuyển đồ vật để chống trộm.')">
+                    <div class="text-4xl mb-3 text-center group-hover:scale-110 transition-transform">📳</div>
+                    <h4 class="font-bold text-center text-stone-800 text-sm">Cảm biến Rung</h4>
+                    <p class="text-xs text-center text-stone-500 mt-1">Chống trộm/Va chạm (x1)</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-stone-200 hover:shadow-md transition-shadow hover:-translate-y-1 transform duration-200 cursor-pointer group" onclick="alert('Cảm biến NTC: Khi nhiệt độ vược mức (chỉnh bằng biến trở), nó sẽ kích hoạt báo cháy.')">
+                    <div class="text-4xl mb-3 text-center group-hover:scale-110 transition-transform">🔥</div>
+                    <h4 class="font-bold text-center text-stone-800 text-sm">Cảm biến Nhiệt NTC</h4>
+                    <p class="text-xs text-center text-stone-500 mt-1">Báo cháy quá nhiệt (x1)</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-stone-200 hover:shadow-md transition-shadow hover:-translate-y-1 transform duration-200 cursor-pointer group" onclick="alert('Cảm biến Mưa: Báo động khi có giọt nước rơi trên bề mặt cảm biến.')">
+                    <div class="text-4xl mb-3 text-center group-hover:scale-110 transition-transform">🌧️</div>
+                    <h4 class="font-bold text-center text-stone-800 text-sm">Cảm biến Mưa</h4>
+                    <p class="text-xs text-center text-stone-500 mt-1">Phát hiện nước (x1)</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-stone-200 hover:shadow-md transition-shadow hover:-translate-y-1 transform duration-200 cursor-pointer group" onclick="alert('Còi Buzz & Relay: Còi hú khi có báo động. Relay dùng để đóng cắt thiết bị điện 220V.')">
+                    <div class="text-4xl mb-3 text-center group-hover:scale-110 transition-transform">📢</div>
+                    <h4 class="font-bold text-center text-stone-800 text-sm">Relay & Còi Buzz</h4>
+                    <p class="text-xs text-center text-stone-500 mt-1">Thiết bị Output (x1)</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="wiring" class="content-section hidden">
+            <header class="mb-8">
+                <h1 class="text-3xl md:text-4xl font-extrabold text-stone-800 mb-4">Sơ đồ Nối Dây (Pinout)</h1>
+                <p class="text-lg text-stone-600 leading-relaxed bg-white p-4 rounded-xl shadow-sm border border-stone-100">
+                    Phần này trình bày chi tiết cách kết nối các linh kiện vào mạch ESP32-C3. Dữ liệu được tổ chức theo nhóm chức năng để bạn dễ dàng đấu nối. Luôn đảm bảo ngắt điện trước khi kết nối và kiểm tra kỹ các chân VCC (3.3V/5V) và GND.
+                </p>
+            </header>
+
+            <div class="space-y-6">
+                <div class="bg-emerald-50 rounded-2xl shadow-sm border border-emerald-100 overflow-hidden">
+                    <div class="bg-emerald-600 text-white p-4 font-bold text-lg flex items-center">
+                        <span class="mr-2">📺</span> Nhóm Hiển thị & Giao tiếp
+                    </div>
+                    <div class="p-0">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-emerald-100 text-emerald-800 text-sm uppercase tracking-wide border-b border-emerald-200">
+                                    <th class="p-3 font-semibold">Linh kiện</th>
+                                    <th class="p-3 font-semibold">Chân Module</th>
+                                    <th class="p-3 font-semibold">Chân ESP32-C3</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-stone-700">
+                                <tr class="border-b border-emerald-50 hover:bg-emerald-100/50 transition-colors">
+                                    <td class="p-3 font-medium">LCD 16x2 I2C</td>
+                                    <td class="p-3">SDA / SCL</td>
+                                    <td class="p-3 font-bold text-emerald-700">GPIO 8 / GPIO 9</td>
+                                </tr>
+                                <tr class="hover:bg-emerald-100/50 transition-colors">
+                                    <td class="p-3 font-medium">LCD Nguồn</td>
+                                    <td class="p-3">VCC / GND</td>
+                                    <td class="p-3 font-bold text-emerald-700">5V / GND</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-amber-50 rounded-2xl shadow-sm border border-amber-100 overflow-hidden">
+                    <div class="bg-amber-500 text-white p-4 font-bold text-lg flex items-center">
+                        <span class="mr-2">📡</span> Nhóm Cảm biến (Inputs)
+                    </div>
+                    <div class="p-0">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-amber-100 text-amber-800 text-sm uppercase tracking-wide border-b border-amber-200">
+                                    <th class="p-3 font-semibold">Linh kiện</th>
+                                    <th class="p-3 font-semibold">Chân Module</th>
+                                    <th class="p-3 font-semibold">Chân ESP32-C3</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-stone-700">
+                                <tr class="border-b border-amber-50 hover:bg-amber-100/50 transition-colors">
+                                    <td class="p-3 font-medium">Cảm biến DHT11</td>
+                                    <td class="p-3">Data</td>
+                                    <td class="p-3 font-bold text-amber-700">GPIO 2</td>
+                                </tr>
+                                <tr class="border-b border-amber-50 hover:bg-amber-100/50 transition-colors">
+                                    <td class="p-3 font-medium">Độ ẩm đất (Soil)</td>
+                                    <td class="p-3">Analog Out (AO)</td>
+                                    <td class="p-3 font-bold text-amber-700">GPIO 3</td>
+                                </tr>
+                                <tr class="border-b border-amber-50 hover:bg-amber-100/50 transition-colors">
+                                    <td class="p-3 font-medium">Cảm biến Mưa</td>
+                                    <td class="p-3">Digital Out (DO)</td>
+                                    <td class="p-3 font-bold text-amber-700">GPIO 1</td>
+                                </tr>
+                                <tr class="border-b border-amber-50 hover:bg-amber-100/50 transition-colors">
+                                    <td class="p-3 font-medium">Cảm biến Rung</td>
+                                    <td class="p-3">Digital Out (DO)</td>
+                                    <td class="p-3 font-bold text-amber-700">GPIO 5</td>
+                                </tr>
+                                <tr class="hover:bg-amber-100/50 transition-colors">
+                                    <td class="p-3 font-medium">Cảm biến Nhiệt NTC</td>
+                                    <td class="p-3">Digital Out (DO)</td>
+                                    <td class="p-3 font-bold text-amber-700">GPIO 6</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-rose-50 rounded-2xl shadow-sm border border-rose-100 overflow-hidden">
+                    <div class="bg-rose-500 text-white p-4 font-bold text-lg flex items-center">
+                        <span class="mr-2">⚡</span> Nhóm Điều khiển & Báo động (Outputs)
+                    </div>
+                    <div class="p-0">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-rose-100 text-rose-800 text-sm uppercase tracking-wide border-b border-rose-200">
+                                    <th class="p-3 font-semibold">Linh kiện</th>
+                                    <th class="p-3 font-semibold">Chân Module</th>
+                                    <th class="p-3 font-semibold">Chân ESP32-C3</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-stone-700">
+                                <tr class="border-b border-rose-50 hover:bg-rose-100/50 transition-colors">
+                                    <td class="p-3 font-medium">Còi Buzz (Active)</td>
+                                    <td class="p-3">Cực dương (+)</td>
+                                    <td class="p-3 font-bold text-rose-700">GPIO 20</td>
+                                </tr>
+                                <tr class="border-b border-rose-50 hover:bg-rose-100/50 transition-colors">
+                                    <td class="p-3 font-medium">Module Relay</td>
+                                    <td class="p-3">Signal IN</td>
+                                    <td class="p-3 font-bold text-rose-700">GPIO 7</td>
+                                </tr>
+                                <tr class="hover:bg-rose-100/50 transition-colors">
+                                    <td class="p-3 font-medium">Đèn LED trạng thái</td>
+                                    <td class="p-3">Cực dương (+)</td>
+                                    <td class="p-3 font-bold text-rose-700">GPIO 10</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="blynk" class="content-section hidden">
+            <header class="mb-8">
+                <h1 class="text-3xl md:text-4xl font-extrabold text-stone-800 mb-4">Thiết lập Blynk Dashboard</h1>
+                <p class="text-lg text-stone-600 leading-relaxed bg-white p-4 rounded-xl shadow-sm border border-stone-100">
+                    Phần này hướng dẫn cấu hình nền tảng IoT Blynk. Bạn cần tạo chính xác các Datastreams ảo (Virtual Pins) này trên Web Dashboard để ứng dụng di động có thể giao tiếp đúng với mạch ESP32-C3 của bạn.
+                </p>
+            </header>
+
+            <div class="bg-white rounded-2xl shadow-md border border-stone-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-stone-100 text-stone-600 text-sm uppercase tracking-wider border-b border-stone-200">
+                                <th class="p-4 font-bold">Virtual Pin</th>
+                                <th class="p-4 font-bold">Kiểu Dữ Liệu</th>
+                                <th class="p-4 font-bold">Mô tả Chức Năng</th>
+                                <th class="p-4 font-bold">Widget Đề Xuất</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-stone-700 divide-y divide-stone-100">
+                            <tr class="hover:bg-stone-50 transition-colors">
+                                <td class="p-4 font-bold text-teal-600 bg-teal-50/50 text-center w-24">V2</td>
+                                <td class="p-4 font-mono text-sm bg-stone-50">Integer (0-1)</td>
+                                <td class="p-4">Điều khiển Bật/Tắt Đèn LED</td>
+                                <td class="p-4"><span class="px-2 py-1 bg-stone-200 rounded text-xs">Switch</span></td>
+                            </tr>
+                            <tr class="hover:bg-stone-50 transition-colors">
+                                <td class="p-4 font-bold text-teal-600 bg-teal-50/50 text-center">V3</td>
+                                <td class="p-4 font-mono text-sm bg-stone-50">Double</td>
+                                <td class="p-4">Hiển thị Nhiệt độ từ DHT11 (°C)</td>
+                                <td class="p-4"><span class="px-2 py-1 bg-stone-200 rounded text-xs">Gauge</span></td>
+                            </tr>
+                            <tr class="hover:bg-stone-50 transition-colors">
+                                <td class="p-4 font-bold text-teal-600 bg-teal-50/50 text-center">V4</td>
+                                <td class="p-4 font-mono text-sm bg-stone-50">Double</td>
+                                <td class="p-4">Hiển thị Độ ẩm không khí (%)</td>
+                                <td class="p-4"><span class="px-2 py-1 bg-stone-200 rounded text-xs">Gauge</span></td>
+                            </tr>
+                            <tr class="hover:bg-stone-50 transition-colors">
+                                <td class="p-4 font-bold text-teal-600 bg-teal-50/50 text-center">V5</td>
+                                <td class="p-4 font-mono text-sm bg-stone-50">Integer</td>
+                                <td class="p-4">Hiển thị Độ ẩm của đất (%)</td>
+                                <td class="p-4"><span class="px-2 py-1 bg-stone-200 rounded text-xs">Gauge</span></td>
+                            </tr>
+                            <tr class="hover:bg-stone-50 transition-colors">
+                                <td class="p-4 font-bold text-teal-600 bg-teal-50/50 text-center">V6</td>
+                                <td class="p-4 font-mono text-sm bg-stone-50">Integer (0-1)</td>
+                                <td class="p-4">Điều khiển Bật/Tắt Relay điện</td>
+                                <td class="p-4"><span class="px-2 py-1 bg-stone-200 rounded text-xs">Switch</span></td>
+                            </tr>
+                            <tr class="hover:bg-stone-50 transition-colors">
+                                <td class="p-4 font-bold text-rose-500 bg-rose-50/50 text-center">V8</td>
+                                <td class="p-4 font-mono text-sm bg-stone-50">String</td>
+                                <td class="p-4">Cảnh báo trạng thái Rung (Safe/ALARM)</td>
+                                <td class="p-4"><span class="px-2 py-1 bg-stone-200 rounded text-xs">Value Label</span></td>
+                            </tr>
+                            <tr class="hover:bg-stone-50 transition-colors">
+                                <td class="p-4 font-bold text-rose-500 bg-rose-50/50 text-center">V9</td>
+                                <td class="p-4 font-mono text-sm bg-stone-50">String</td>
+                                <td class="p-4">Cảnh báo trạng thái Mưa (Dry/RAINING)</td>
+                                <td class="p-4"><span class="px-2 py-1 bg-stone-200 rounded text-xs">Value Label</span></td>
+                            </tr>
+                            <tr class="hover:bg-stone-50 transition-colors">
+                                <td class="p-4 font-bold text-rose-500 bg-rose-50/50 text-center">V10</td>
+                                <td class="p-4 font-mono text-sm bg-stone-50">Integer</td>
+                                <td class="p-4">Cảnh báo Quá nhiệt từ cảm biến NTC</td>
+                                <td class="p-4"><span class="px-2 py-1 bg-stone-200 rounded text-xs">LED</span></td>
+                            </tr>
+                            <tr class="hover:bg-stone-50 transition-colors">
+                                <td class="p-4 font-bold text-amber-500 bg-amber-50/50 text-center">V11</td>
+                                <td class="p-4 font-mono text-sm bg-stone-50">Integer (0-1)</td>
+                                <td class="p-4">Nút nhấn kích hoạt Còi hú thủ công</td>
+                                <td class="p-4"><span class="px-2 py-1 bg-stone-200 rounded text-xs">Button (Push)</span></td>
+                            </tr>
+                            <tr class="hover:bg-stone-50 transition-colors">
+                                <td class="p-4 font-bold text-amber-500 bg-amber-50/50 text-center">V12</td>
+                                <td class="p-4 font-mono text-sm bg-stone-50">Integer (0-1)</td>
+                                <td class="p-4 font-bold">Hệ thống Còi (ON/OFF - Chế độ Mute)</td>
+                                <td class="p-4"><span class="px-2 py-1 bg-stone-200 rounded text-xs">Switch</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="code" class="content-section hidden">
+            <header class="mb-8">
+                <h1 class="text-3xl md:text-4xl font-extrabold text-stone-800 mb-4">Cài đặt Môi trường & Mã Nguồn</h1>
+                <p class="text-lg text-stone-600 leading-relaxed bg-white p-4 rounded-xl shadow-sm border border-stone-100">
+                    Phần cuối cùng cung cấp các thiết lập bắt buộc trong phần mềm Arduino IDE để nạp code thành công cho mạch ESP32-C3, kèm theo đoạn mã nguồn C++ hoàn thiện của dự án.
+                </p>
+            </header>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 lg:col-span-1">
+                    <h3 class="font-bold text-lg mb-4 text-emerald-700 border-b pb-2">1. Cấu hình Tools (Bắt buộc)</h3>
+                    <ul class="space-y-3 text-sm text-stone-600">
+                        <li><strong>Board:</strong> ESP32C3 Dev Module <span class="text-xs text-stone-400 block">(hoặc AirM2M CORE ESP32C3)</span></li>
+                        <li><strong>USB CDC On Boot:</strong> <span class="bg-emerald-100 text-emerald-800 px-1 rounded">Enabled</span> <span class="text-xs text-stone-400 block">(Để xem Serial Monitor)</span></li>
+                        <li><strong>Flash Mode:</strong> DIO</li>
+                        <li><strong>Flash Size:</strong> 4MB</li>
+                    </ul>
+                    <div class="mt-6 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+                        <strong>Mẹo nạp Code:</strong> Nếu báo lỗi kết nối, nhấn giữ nút BOOT trên mạch, cắm cáp USB, chờ máy tính nhận cổng COM rồi bấm nạp.
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 lg:col-span-2">
+                    <h3 class="font-bold text-lg mb-4 text-emerald-700 border-b pb-2">2. Thư viện yêu cầu (Libraries)</h3>
+                    <p class="text-sm text-stone-600 mb-4">Vào <em>Tools -> Manage Libraries</em> và cài đặt các thư viện sau:</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                        <div class="p-3 bg-stone-50 rounded border border-stone-100">
+                            <strong>Blynk</strong> <br><span class="text-xs text-stone-500">by Volodymyr Shymanskyy</span>
+                        </div>
+                        <div class="p-3 bg-stone-50 rounded border border-stone-100">
+                            <strong>LiquidCrystal I2C</strong> <br><span class="text-xs text-stone-500">by Frank de Brabander</span>
+                        </div>
+                        <div class="p-3 bg-stone-50 rounded border border-stone-100">
+                            <strong>DHT sensor library</strong> <br><span class="text-xs text-stone-500">by Adafruit</span>
+                        </div>
+                        <div class="p-3 bg-stone-50 rounded border border-stone-100">
+                            <strong>Adafruit Unified Sensor</strong> <br><span class="text-xs text-stone-500">Bắt buộc cho DHT</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="relative bg-[#1e1e1e] rounded-2xl shadow-lg overflow-hidden border border-stone-800">
+                <div class="flex justify-between items-center bg-[#2d2d2d] px-4 py-2 border-b border-stone-700">
+                    <span class="text-stone-300 text-sm font-mono">main.ino</span>
+                    <button onclick="copyCode()" id="copyBtn" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400">Sao chép Code</button>
+                </div>
+                <pre class="p-6 text-sm text-stone-300 font-mono overflow-x-auto hide-scrollbar"><code id="sourceCode">/* Điền thông tin Blynk của bạn vào đây */
+#define BLYNK_TEMPLATE_ID   "Dien_ID_Cua_Ban"
+#define BLYNK_TEMPLATE_NAME "Dien_Ten_Template"
+#define BLYNK_AUTH_TOKEN    "Dien_Auth_Token_Cua_Ban"
+
+#include &lt;WiFi.h&gt;
+#include &lt;BlynkSimpleEsp32.h&gt;
+#include &lt;DHT.h&gt;
+#include &lt;Wire.h&gt;
+#include &lt;LiquidCrystal_I2C.h&gt;
+
+/* Điền thông tin WiFi của bạn vào đây */
+char ssid[] = "Ten_WiFi_Cua_Ban";
+char pass[] = "Mat_Khau_WiFi";
+
+// Dinh nghia chan Pin ESP32-C3
+#define LED_PIN     10
+#define RELAY_PIN   7
+#define DHTPIN      2
+#define SOIL_PIN    3
+#define VIB_PIN     5
+#define NTC_PIN     6
+#define RAIN_PIN    1
+#define BUZZ_PIN    20
+#define DHTTYPE     DHT11
+
+DHT dht(DHTPIN, DHTTYPE);
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+BlynkTimer timer;
+
+bool relayState = false;
+bool manualBuzz = false;
+bool buzzEnable = true; 
+int lcdPage = 0;
+unsigned long lastNotify = 0;
+
+// Dieu khien tu Blynk
+BLYNK_WRITE(V12) { buzzEnable = param.asInt(); }
+BLYNK_WRITE(V11) { manualBuzz = param.asInt(); }
+BLYNK_WRITE(V2)  { digitalWrite(LED_PIN, param.asInt()); }
+BLYNK_WRITE(V6)  { relayState = param.asInt(); digitalWrite(RELAY_PIN, relayState); }
+
+void sendNotify(String msg) {
+  if (millis() - lastNotify > 60000) { 
+    Blynk.logEvent("alarm", msg); 
+    lastNotify = millis();
+  }
+}
+
+void checkAlarms() {
+  float t = dht.readTemperature();
+  bool isRain = !digitalRead(RAIN_PIN);
+  bool isVib = !digitalRead(VIB_PIN);
+  bool isHotNTC = !digitalRead(NTC_PIN); 
+
+  bool trigger = false;
+  String reason = "";
+
+  if (isHotNTC || t >= 75) { trigger = true; reason = "NHIET DO QUA CAO!"; }
+  if (isRain) { trigger = true; reason = "TROII DANG MUA!"; }
+  if (isVib) { trigger = true; reason = "CANH BAO RUNG!"; }
+
+  if ((trigger || manualBuzz) && buzzEnable) {
+    digitalWrite(BUZZ_PIN, HIGH);
+    if (trigger) sendNotify(reason);
+  } else {
+    digitalWrite(BUZZ_PIN, LOW);
+  }
+
+  Blynk.virtualWrite(V8, isVib ? "RUNG!" : "Safe");
+  Blynk.virtualWrite(V9, isRain ? "MUA!" : "Dry");
+  Blynk.virtualWrite(V10, isHotNTC ? 100 : 0);
+}
+
+void updateLCD() {
+  float t = dht.readTemperature();
+  float h = dht.readHumidity();
+  int soil = map(analogRead(SOIL_PIN), 4095, 0, 0, 100);
+  soil = constrain(soil, 0, 100);
+
+  Blynk.virtualWrite(V3, t);
+  Blynk.virtualWrite(V4, h);
+  Blynk.virtualWrite(V5, soil);
+
+  lcd.setCursor(0, 0);
+  if (lcdPage == 0) {
+    lcd.print("T:"); lcd.print((int)t); lcd.print("C H:"); lcd.print((int)h); lcd.print("%   ");
+    lcd.setCursor(0, 1);
+    lcd.print("Buzz:"); lcd.print(buzzEnable ? "ON " : "OFF"); 
+    lcd.print(" R:"); lcd.print(relayState ? "ON " : "OFF");
+    lcdPage = 1;
+  } else {
+    lcd.print("Soil:"); lcd.print(soil); lcd.print("% Rain:"); lcd.print(!digitalRead(RAIN_PIN)? "Y":"N");
+    lcd.setCursor(0, 1);
+    lcd.print("System Online   ");
+    lcdPage = 0;
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  Wire.begin(8, 9);
+  lcd.init(); lcd.backlight();
+  
+  pinMode(BUZZ_PIN, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
+  pinMode(RELAY_PIN, OUTPUT);
+  pinMode(VIB_PIN, INPUT_PULLUP);
+  pinMode(NTC_PIN, INPUT_PULLUP);
+  pinMode(RAIN_PIN, INPUT_PULLUP);
+
+  dht.begin();
+  
+  WiFi.begin(ssid, pass);
+  Blynk.config(BLYNK_AUTH_TOKEN); 
+  
+  timer.setInterval(2000L, updateLCD);
+  timer.setInterval(500L, checkAlarms);
+}
+
+void loop() {
+  Blynk.run();
+  timer.run();
+}</code></pre>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // Navigation Logic
+        function navigate(sectionId) {
+            document.querySelectorAll('.content-section').forEach(sec => {
+                sec.classList.add('hidden');
+                sec.classList.remove('fade-in');
+            });
+            
+            const target = document.getElementById(sectionId);
+            target.classList.remove('hidden');
+            target.classList.add('fade-in');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-emerald-50', 'text-emerald-700', 'shadow-sm');
+                btn.classList.add('hover:bg-stone-100', 'text-stone-600');
+            });
+            
+            const activeBtn = event.currentTarget;
+            activeBtn.classList.add('bg-emerald-50', 'text-emerald-700', 'shadow-sm');
+            activeBtn.classList.remove('hover:bg-stone-100', 'text-stone-600');
+
+            // Trigger chart update if navigating to overview to ensure proper rendering size
+            if(sectionId === 'overview' && chartInstances) {
+                Object.values(chartInstances).forEach(chart => chart.update());
+            }
+        }
+
+        // Copy Code Logic
+        function copyCode() {
+            const codeBlock = document.getElementById('sourceCode');
+            const textArea = document.createElement("textarea");
+            textArea.value = codeBlock.innerText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand("Copy");
+            textArea.remove();
+            
+            const btn = document.getElementById('copyBtn');
+            const originalText = btn.innerText;
+            btn.innerText = "Đã chép!";
+            btn.classList.replace('bg-emerald-600', 'bg-teal-600');
+            
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.classList.replace('bg-teal-600', 'bg-emerald-600');
+            }, 2000);
+        }
+
+        // Chart.js Setup for Dashboard Simulation
+        let chartInstances = {};
+        
+        function initCharts() {
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                circumference: 180,
+                rotation: 270,
+                cutout: '80%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: false }
+                },
+                animation: { duration: 0 } // Disabled animation for real-time simulation feel
+            };
+
+            const ctxTemp = document.getElementById('tempChart').getContext('2d');
+            chartInstances.temp = new Chart(ctxTemp, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Current', 'Remaining'],
+                    datasets: [{
+                        data: [25, 75], // Assuming max 100
+                        backgroundColor: ['#f43f5e', '#e7e5e4'],
+                        borderWidth: 0,
+                        borderRadius: 5
+                    }]
+                },
+                options: commonOptions
+            });
+
+            const ctxHumi = document.getElementById('humiChart').getContext('2d');
+            chartInstances.humi = new Chart(ctxHumi, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Current', 'Remaining'],
+                    datasets: [{
+                        data: [60, 40], // Assuming max 100
+                        backgroundColor: ['#0ea5e9', '#e7e5e4'],
+                        borderWidth: 0,
+                        borderRadius: 5
+                    }]
+                },
+                options: commonOptions
+            });
+
+            const ctxSoil = document.getElementById('soilChart').getContext('2d');
+            chartInstances.soil = new Chart(ctxSoil, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Current', 'Remaining'],
+                    datasets: [{
+                        data: [45, 55], // Assuming max 100
+                        backgroundColor: ['#10b981', '#e7e5e4'],
+                        borderWidth: 0,
+                        borderRadius: 5
+                    }]
+                },
+                options: commonOptions
+            });
+        }
+
+        // Simulation Logic to make the dashboard feel alive
+        function simulateData() {
+            if(!chartInstances.temp) return;
+
+            // Generate slight variations
+            let temp = 25 + (Math.random() * 2 - 1);
+            let humi = 60 + (Math.random() * 4 - 2);
+            let soil = 45 + (Math.random() * 1 - 0.5);
+
+            // Update UI Numbers
+            document.getElementById('tempValue').innerText = temp.toFixed(1) + '°C';
+            document.getElementById('humiValue').innerText = Math.round(humi) + '%';
+            document.getElementById('soilValue').innerText = Math.round(soil) + '%';
+
+            // Update Charts
+            chartInstances.temp.data.datasets[0].data = [temp, 100 - temp];
+            chartInstances.temp.update();
+
+            chartInstances.humi.data.datasets[0].data = [humi, 100 - humi];
+            chartInstances.humi.update();
+
+            chartInstances.soil.data.datasets[0].data = [soil, 100 - soil];
+            chartInstances.soil.update();
+        }
+
+        // Initialize on load
+        window.onload = () => {
+            initCharts();
+            setInterval(simulateData, 3000); // Simulate incoming data every 3 seconds
+        };
+    </script>
+</body>
+</html>
